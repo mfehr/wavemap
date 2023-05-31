@@ -1,18 +1,20 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(wavemap_ros_conversions)
 
-find_package(catkin_simple REQUIRED)
-catkin_simple(ALL_DEPS_REQUIRED)
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies(REQUIRED)
+voliro_build_cpp()
+
+add_definitions(-w)
 
 # Compiler definitions and options
+include(cmake/wavemap-extras.cmake)
 add_wavemap_compile_definitions_and_options()
 
 # Libraries
-cs_add_library(${PROJECT_NAME}
-    src/config_conversions.cc
+ament_auto_add_library(${PROJECT_NAME}
     src/map_msg_conversions.cc
     src/time_conversions.cc)
 
 # Export
-cs_install()
-cs_export()
+ament_auto_package()

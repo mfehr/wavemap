@@ -42,7 +42,7 @@ void DepthImageInputHandler::processQueue() {
     // Get the sensor pose in world frame
     Transformation3D T_W_C;
     const ros::Time stamp =
-        oldest_msg.header.stamp + ros::Duration(config_.time_delay);
+        oldest_msg.header.stamp + rclcpp::Duration::from_seconds(config_.time_delay);
     if (!transformer_->lookupTransform(world_frame_, sensor_frame_id, stamp,
                                        T_W_C)) {
       const auto newest_msg = depth_image_queue_.back();
@@ -51,7 +51,7 @@ void DepthImageInputHandler::processQueue() {
         // Try to get this depth image's pose again at the next iteration
         return;
       } else {
-        ROS_WARN_STREAM("Waited " << config_.max_wait_for_pose
+        RCLCPP_WARN_STREAM(rclcpp::get_logger("rclcpp"), "Waited " << config_.max_wait_for_pose
                                   << "s but still could not look up pose for "
                                      "depth image with frame \""
                                   << sensor_frame_id << "\" in world frame \""
@@ -77,7 +77,7 @@ void DepthImageInputHandler::processQueue() {
     posed_range_image.setPose(T_W_C);
 
     // Integrate the depth image
-    ROS_INFO_STREAM("Inserting depth image with "
+    RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "Inserting depth image with "
                     << EigenFormat::oneLine(posed_range_image.getDimensions())
                     << " points. Remaining pointclouds in queue: "
                     << depth_image_queue_.size() - 1 << ".");
@@ -86,7 +86,7 @@ void DepthImageInputHandler::processQueue() {
       integrator->integrateRangeImage(posed_range_image);
     }
     integration_timer_.stop();
-    ROS_INFO_STREAM("Integrated new depth image in "
+    RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "Integrated new depth image in "
                     << integration_timer_.getLastEpisodeWallTime()
                     << "s. Total integration time: "
                     << integration_timer_.getTotalWallTime() << "s.");

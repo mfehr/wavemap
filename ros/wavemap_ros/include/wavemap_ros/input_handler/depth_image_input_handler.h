@@ -6,8 +6,8 @@
 #include <string>
 #include <vector>
 
-#include <image_transport/image_transport.h>
-#include <sensor_msgs/Image.h>
+#include <image_transport/image_transport.hpp>
+#include <sensor_msgs/msg/image.hpp>
 #include <wavemap/data_structure/image.h>
 #include <wavemap/integrator/projective/projective_integrator.h>
 

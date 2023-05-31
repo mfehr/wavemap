@@ -1,41 +1,44 @@
-cmake_minimum_required(VERSION 3.0.2)
+cmake_minimum_required(VERSION 3.8)
 project(wavemap)
 
-# Dependencies
-find_package(catkin
-    REQUIRED COMPONENTS glog_catkin eigen_catkin minkindr)
-if (ENABLE_BENCHMARKING)
-  find_package(benchmark REQUIRED)
-endif ()
+find_package(ament_cmake_auto REQUIRED)
+ament_auto_find_build_dependencies(REQUIRED)
+voliro_build_cpp()
+
+add_definitions(-w)
+
+# if (ENABLE_BENCHMARKING)
+#   find_package(benchmark REQUIRED)
+# endif ()
 
 # Compiler definitions and options
 include(cmake/wavemap-extras.cmake)
 add_wavemap_compile_definitions_and_options()
 
 # Setup catkin package
-catkin_package(
-    INCLUDE_DIRS
-    include
-    test/include
-    LIBRARIES
-    ${PROJECT_NAME}
-    CATKIN_DEPENDS
-    glog_catkin
-    eigen_catkin
-    minkindr
-    CFG_EXTRAS
-    wavemap-extras.cmake)
+# catkin_package(
+#     INCLUDE_DIRS
+#     include
+#     test/include
+#     LIBRARIES
+#     ${PROJECT_NAME}
+#     CATKIN_DEPENDS
+#     glog_catkin
+#     eigen_catkin
+#     minkindr
+#     CFG_EXTRAS
+#     wavemap-extras.cmake)
 # NOTE: The test headers are normally not exported (e.g. by adding test/include
 # to the catkin_package's INCLUDE_DIRS), but we make an exception for this base
 # package's test headers, such that common tooling and test fixtures can be
 # reused in downstream wavemap packages.
 
 # For all targets
-include_directories(include ${catkin_INCLUDE_DIRS})
+# include_directories(include ${catkin_INCLUDE_DIRS})
 
 # Libraries
 # cmake-lint: disable=C0301
-add_library(${PROJECT_NAME}
+ament_auto_add_library(${PROJECT_NAME}
     src/config/unit_conversions.cc
     src/data_structure/volumetric/hashed_blocks.cc
     src/data_structure/volumetric/hashed_chunked_wavelet_octree.cc
@@ -66,11 +69,12 @@ add_library(${PROJECT_NAME}
     src/integrator/integrator_factory.cc
     src/utils/eigen_format.cc
     src/utils/thread_pool.cc)
-target_link_libraries(${PROJECT_NAME} ${catkin_LIBRARIES})
 
 # Tests
-if (CATKIN_ENABLE_TESTING)
-  catkin_add_gtest(
+if (BUILD_TESTING)
+find_package(ament_cmake_gtest REQUIRED)
+
+ament_add_gtest(
       test_${PROJECT_NAME}
       test/src/data_structure/test_aabb.cc
       test/src/data_structure/test_haar_cell.cc
@@ -101,17 +105,21 @@ if (CATKIN_ENABLE_TESTING)
       test/src/utils/test_tree_math.cc
       test/src/utils/test_thread_pool.cc)
   target_include_directories(test_${PROJECT_NAME} PRIVATE test/include)
-  target_link_libraries(test_${PROJECT_NAME} ${PROJECT_NAME} gtest_main)
+  target_link_libraries(test_${PROJECT_NAME} ${PROJECT_NAME})
 endif ()
 
 # Benchmarks
-if (ENABLE_BENCHMARKING)
-  add_executable(benchmark_haar_transforms
-      benchmark/benchmark_haar_transforms.cc)
-  target_link_libraries(benchmark_haar_transforms ${PROJECT_NAME}
-      benchmark::benchmark)
+# if (ENABLE_BENCHMARKING)
+#   add_executable(benchmark_haar_transforms
+#       benchmark/benchmark_haar_transforms.cc)
+#   target_link_libraries(benchmark_haar_transforms ${PROJECT_NAME}
+#       benchmark::benchmark)
 
-  add_executable(benchmark_sparse_vector benchmark/benchmark_sparse_vector.cc)
-  target_link_libraries(benchmark_sparse_vector ${PROJECT_NAME}
-      benchmark::benchmark)
-endif ()
+#   add_executable(benchmark_sparse_vector benchmark/benchmark_sparse_vector.cc)
+#   target_link_libraries(benchmark_sparse_vector ${PROJECT_NAME}
+#       benchmark::benchmark)
+# endif ()
+
+ament_auto_package(
+    CONFIG_EXTRAS "cmake/wavemap-extras.cmake"
+)

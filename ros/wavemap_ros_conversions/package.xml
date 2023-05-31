@@ -1,5 +1,6 @@
 <?xml version="1.0"?>
-<package format="2">
+<?xml-model href="http://download.ros.org/schema/package_format3.xsd" schematypens="http://www.w3.org/2001/XMLSchema"?>
+<package format="3">
   <name>wavemap_ros_conversions</name>
   <version>0.0.0</version>
   <description>Conversions between wavemap and ROS types.</description>
@@ -10,10 +11,14 @@
 
   <author email="victorr@ethz.ch">Victor Reijgwart</author>
 
-  <buildtool_depend>catkin</buildtool_depend>
-  <buildtool_depend>catkin_simple</buildtool_depend>
+  <build_depend>voliro_build</build_depend>
+  <buildtool_depend>ament_cmake</buildtool_depend>
 
-  <depend>roscpp</depend>
+  <depend>rclcpp</depend>
   <depend>wavemap</depend>
   <depend>wavemap_msgs</depend>
+
+  <export>
+    <build_type>ament_cmake</build_type>
+  </export>
 </package>

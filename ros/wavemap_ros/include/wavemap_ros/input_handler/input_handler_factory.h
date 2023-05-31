@@ -12,16 +12,14 @@ class InputHandlerFactory {
   static std::unique_ptr<InputHandler> create(
       const param::Map& params, std::string world_frame,
       VolumetricDataStructureBase::Ptr occupancy_map,
-      std::shared_ptr<TfTransformer> transformer, ros::NodeHandle nh,
-      ros::NodeHandle nh_private,
+      std::shared_ptr<TfTransformer> transformer, rclcpp::Node::SharedPtr nh,
       std::optional<InputHandlerType> default_input_handler_type =
           std::nullopt);
 
   static std::unique_ptr<InputHandler> create(
       InputHandlerType input_handler_type, const param::Map& params,
       std::string world_frame, VolumetricDataStructureBase::Ptr occupancy_map,
-      std::shared_ptr<TfTransformer> transformer, ros::NodeHandle nh,
-      ros::NodeHandle nh_private);
+      std::shared_ptr<TfTransformer> transformer, rclcpp::Node::SharedPtr nh);
 };
 }  // namespace wavemap
 

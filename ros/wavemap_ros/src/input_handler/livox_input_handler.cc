@@ -8,14 +8,14 @@ namespace wavemap {
 LivoxInputHandler::LivoxInputHandler(
     const InputHandlerConfig& config, const param::Map& params,
     std::string world_frame, VolumetricDataStructureBase::Ptr occupancy_map,
-    std::shared_ptr<TfTransformer> transformer, ros::NodeHandle nh,
-    ros::NodeHandle nh_private)
+    std::shared_ptr<TfTransformer> transformer, rclcpp::Node::SharedPtr nh)
     : InputHandler(config, params, std::move(world_frame),
-                   std::move(occupancy_map), std::move(transformer), nh,
-                   std::move(nh_private)) {
+                   std::move(occupancy_map), std::move(transformer), nh) {
   // Subscribe to the pointcloud input
-  pointcloud_sub_ = nh.subscribe(config_.topic_name, config_.topic_queue_length,
-                                 &LivoxInputHandler::pointcloudCallback, this);
+  pointcloud_sub_ = nh.create_subscriber<sensor_msgs::msg::PointCloud2>(
+      config_.topic_name, rclcpp::SensorDataQoS(),
+      std::bind(&LivoxInputHandler::pointcloudCallback, this,
+                std::placeholders::_1));
 }
 
 void LivoxInputHandler::processQueue() {
@@ -27,7 +27,7 @@ void LivoxInputHandler::processQueue() {
 
     // Skip empty clouds
     if (oldest_msg.points.empty()) {
-      ROS_WARN_STREAM("Skipping empty pointcloud with timestamp "
+      RCLCPP_WARN_STREAM(rclcpp::get_logger("rclcpp"), "Skipping empty pointcloud with timestamp "
                       << oldest_msg.header.stamp << ".");
       pointcloud_queue_.pop();
       continue;
@@ -63,7 +63,7 @@ void LivoxInputHandler::processQueue() {
         // Try to get this pointcloud's pose again at the next iteration
         return;
       } else {
-        ROS_WARN_STREAM("Waited " << config_.max_wait_for_pose
+        RCLCPP_WARN_STREAM(rclcpp::get_logger("rclcpp"), "Waited " << config_.max_wait_for_pose
                                   << "s but still could not look up end pose "
                                      "for pointcloud with frame \""
                                   << sensor_frame_id << "\" in world frame \""
@@ -78,7 +78,7 @@ void LivoxInputHandler::processQueue() {
     if (!transformer_->isTransformAvailable(
             world_frame_, sensor_frame_id,
             convert::nanoSecondsToRosTime(buffer_start_time))) {
-      ROS_WARN_STREAM("Pointcloud end pose is available but start pose at time "
+      RCLCPP_WARN_STREAM(rclcpp::get_logger("rclcpp"), "Pointcloud end pose is available but start pose at time "
                       << start_time << " is not. Skipping pointcloud.");
       pointcloud_queue_.pop();
       continue;
@@ -95,7 +95,7 @@ void LivoxInputHandler::processQueue() {
               world_frame_, sensor_frame_id,
               convert::nanoSecondsToRosTime(timed_pose.first),
               timed_pose.second)) {
-        ROS_WARN_STREAM("Failed to buffer intermediate pose at time "
+        RCLCPP_WARN_STREAM(rclcpp::get_logger("rclcpp"), "Failed to buffer intermediate pose at time "
                         << convert::nanoSecondsToRosTime(timed_pose.first)
                         << ".");
         pose_buffering_failed = true;
@@ -103,7 +103,7 @@ void LivoxInputHandler::processQueue() {
       }
     }
     if (pose_buffering_failed) {
-      ROS_WARN_STREAM(
+      RCLCPP_WARN_STREAM(rclcpp::get_logger("rclcpp"), 
           "Could not buffer all transforms for pointcloud spanning time "
           "interval ["
           << start_time << ", " << end_time
@@ -149,7 +149,7 @@ void LivoxInputHandler::processQueue() {
         T_WCmid, T_WCmid.inverse().transformVectorized(t_W_points));
 
     // Integrate the pointcloud
-    ROS_INFO_STREAM("Inserting pointcloud with "
+    RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"), "Inserting pointcloud with "
                     << posed_pointcloud.size()
                     << " points. Remaining pointclouds in queue: "
                     << pointcloud_queue_.size() - 1 << ".");
@@ -158,7 +158,7 @@ void LivoxInputHandler::processQueue() {
       integrator->integratePointcloud(posed_pointcloud);
     }
     integration_timer_.stop();
-    ROS_INFO_STREAM("Integrated new pointcloud in "
+    RCLCPP_INFO_STREAM("Integrated new pointcloud in "
                     << integration_timer_.getLastEpisodeWallTime()
                     << "s. Total integration time: "
                     << integration_timer_.getTotalWallTime() << "s.");

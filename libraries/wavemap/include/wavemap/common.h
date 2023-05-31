@@ -3,6 +3,7 @@
 
 #include <limits>
 #include <vector>
+#include <optional>
 
 #include <Eigen/Eigen>
 #include <kindr/minimal/quat-transformation.h>

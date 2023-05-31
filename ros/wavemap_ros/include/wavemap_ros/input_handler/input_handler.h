@@ -5,12 +5,14 @@
 #include <string>
 #include <vector>
 
-#include <image_transport/image_transport.h>
+#include <image_transport/image_transport.hpp>
 #include <wavemap/config/config_base.h>
 #include <wavemap/data_structure/image.h>
 #include <wavemap/data_structure/pointcloud.h>
 #include <wavemap/data_structure/volumetric/volumetric_data_structure_base.h>
 #include <wavemap/integrator/integrator_base.h>
+#include <sensor_msgs/msg/point_cloud2.hpp>
+#include <wavemap_msgs/msg/map.hpp>
 
 #include "wavemap_ros/tf_transformer.h"
 #include "wavemap_ros/utils/timer.h"
@@ -50,19 +52,17 @@ class InputHandler {
                std::string world_frame,
                VolumetricDataStructureBase::Ptr occupancy_map,
                std::shared_ptr<TfTransformer> transformer,
-               const ros::NodeHandle& nh, ros::NodeHandle nh_private);
+               rclcpp::Node::SharedPtr nh);
   virtual ~InputHandler() = default;
 
   virtual InputHandlerType getType() const = 0;
   const InputHandlerConfig& getConfig() const { return config_; }
 
   bool shouldPublishReprojectedPointcloud() const {
-    return !config_.reprojected_pointcloud_topic_name.empty() &&
-           0 < reprojected_pointcloud_pub_.getNumSubscribers();
+    return !config_.reprojected_pointcloud_topic_name.empty();
   }
   bool shouldPublishProjectedRangeImage() const {
-    return !config_.projected_range_image_topic_name.empty() &&
-           0 < projected_range_image_pub_.getNumSubscribers();
+    return !config_.projected_range_image_topic_name.empty();
   }
 
  protected:
@@ -75,13 +75,14 @@ class InputHandler {
   std::shared_ptr<TfTransformer> transformer_;
 
   virtual void processQueue() = 0;
-  ros::Timer queue_processing_retry_timer_;
+  rclcpp::TimerBase::SharedPtr queue_processing_retry_timer_;
 
-  void publishReprojectedPointcloud(const ros::Time& stamp,
+  void publishReprojectedPointcloud(const rclcpp::Time& stamp,
                                     const PosedPointcloud<>& posed_pointcloud);
-  ros::Publisher reprojected_pointcloud_pub_;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr
+      reprojected_pointcloud_pub_;
 
-  void publishProjectedRangeImage(const ros::Time& stamp,
+  void publishProjectedRangeImage(const rclcpp::Time& stamp,
                                   const Image<>& range_image);
   image_transport::Publisher projected_range_image_pub_;
 };

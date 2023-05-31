@@ -2,7 +2,7 @@
 
 namespace wavemap {
 RosbagProcessor::~RosbagProcessor() {
-  ROS_INFO("Shutting down...");
+  RCLCPP_INFO(rclcpp::get_logger("rclcpp"), "Shutting down...");
   for (rosbag::Bag& opened_rosbag : opened_rosbags_) {
     opened_rosbag.close();
   }

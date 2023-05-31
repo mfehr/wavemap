@@ -1,9 +1,9 @@
 #include "wavemap_ros_conversions/map_msg_conversions.h"
 
 namespace wavemap::convert {
-wavemap_msgs::Map mapToRosMsg(const VolumetricDataStructureBase::ConstPtr& map,
+wavemap_msgs::msg::Map mapToRosMsg(const VolumetricDataStructureBase::ConstPtr& map,
                               const std::string& frame_id,
-                              const ros::Time& stamp,
+                              const rclcpp::Time& stamp,
                               FloatingPoint ignore_blocks_older_than) {
   if (const auto octree =
           std::dynamic_pointer_cast<const VolumetricOctree>(map);
@@ -36,10 +36,10 @@ wavemap_msgs::Map mapToRosMsg(const VolumetricDataStructureBase::ConstPtr& map,
   return {};
 }
 
-wavemap_msgs::Map mapToRosMsg(const VolumetricOctree& map,
+wavemap_msgs::msg::Map mapToRosMsg(const VolumetricOctree& map,
                               const std::string& frame_id,
-                              const ros::Time& stamp) {
-  wavemap_msgs::Map map_msg;
+                              const rclcpp::Time& stamp) {
+  wavemap_msgs::msg::Map map_msg;
   map_msg.header.stamp = stamp;
   map_msg.header.frame_id = frame_id;
 
@@ -62,10 +62,10 @@ wavemap_msgs::Map mapToRosMsg(const VolumetricOctree& map,
   return map_msg;
 }
 
-wavemap_msgs::Map mapToRosMsg(const WaveletOctree& map,
+wavemap_msgs::msg::Map mapToRosMsg(const WaveletOctree& map,
                               const std::string& frame_id,
-                              const ros::Time& stamp) {
-  wavemap_msgs::Map map_msg;
+                              const rclcpp::Time& stamp) {
+  wavemap_msgs::msg::Map map_msg;
   map_msg.header.stamp = stamp;
   map_msg.header.frame_id = frame_id;
 
@@ -90,11 +90,11 @@ wavemap_msgs::Map mapToRosMsg(const WaveletOctree& map,
   return map_msg;
 }
 
-wavemap_msgs::Map mapToRosMsg(const HashedWaveletOctree& map,
+wavemap_msgs::msg::Map mapToRosMsg(const HashedWaveletOctree& map,
                               const std::string& frame_id,
-                              const ros::Time& stamp,
+                              const rclcpp::Time& stamp,
                               FloatingPoint ignore_blocks_older_than) {
-  wavemap_msgs::Map map_msg;
+  wavemap_msgs::msg::Map map_msg;
   map_msg.header.stamp = stamp;
   map_msg.header.frame_id = frame_id;
 
@@ -153,11 +153,11 @@ wavemap_msgs::Map mapToRosMsg(const HashedWaveletOctree& map,
   return map_msg;
 }
 
-wavemap_msgs::Map mapToRosMsg(const HashedChunkedWaveletOctree& map,
+wavemap_msgs::msg::Map mapToRosMsg(const HashedChunkedWaveletOctree& map,
                               const std::string& frame_id,
-                              const ros::Time& stamp,
+                              const rclcpp::Time& stamp,
                               FloatingPoint ignore_blocks_older_than) {
-  wavemap_msgs::Map map_msg;
+  wavemap_msgs::msg::Map map_msg;
   map_msg.header.stamp = stamp;
   map_msg.header.frame_id = frame_id;
 
@@ -246,7 +246,7 @@ wavemap_msgs::Map mapToRosMsg(const HashedChunkedWaveletOctree& map,
   return map_msg;
 }
 
-void rosMsgToMap(const wavemap_msgs::Map& map_msg,
+void rosMsgToMap(const wavemap_msgs::msg::Map& map_msg,
                  VolumetricDataStructureBase::Ptr& map) {
   if (!map_msg.wavelet_octree.empty()) {
     if (map_msg.wavelet_octree.size() == 1) {
@@ -275,7 +275,7 @@ void rosMsgToMap(const wavemap_msgs::Map& map_msg,
   map = nullptr;
 }
 
-void rosMsgToMap(const wavemap_msgs::Map& map_msg, VolumetricOctree::Ptr& map) {
+void rosMsgToMap(const wavemap_msgs::msg::Map& map_msg, VolumetricOctree::Ptr& map) {
   if (map) {
     map->clear();
   } else {
@@ -305,7 +305,7 @@ void rosMsgToMap(const wavemap_msgs::Map& map_msg, VolumetricOctree::Ptr& map) {
   }
 }
 
-void rosMsgToMap(const wavemap_msgs::Map& map_msg, WaveletOctree::Ptr& map) {
+void rosMsgToMap(const wavemap_msgs::msg::Map& map_msg, WaveletOctree::Ptr& map) {
   if (map) {
     map->clear();
   } else {
@@ -339,7 +339,7 @@ void rosMsgToMap(const wavemap_msgs::Map& map_msg, WaveletOctree::Ptr& map) {
   }
 }
 
-void rosMsgToMap(const wavemap_msgs::Map& map_msg,
+void rosMsgToMap(const wavemap_msgs::msg::Map& map_msg,
                  HashedWaveletOctree::Ptr& map) {
   if (!map) {
     HashedWaveletOctreeConfig config;

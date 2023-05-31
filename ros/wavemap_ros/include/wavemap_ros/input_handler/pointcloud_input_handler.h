@@ -5,7 +5,7 @@
 #include <queue>
 #include <string>
 
-#include <sensor_msgs/PointCloud2.h>
+#include <sensor_msgs/msg/point_cloud2.hpp>
 
 #include "wavemap_ros/input_handler/input_handler.h"
 
@@ -16,19 +16,19 @@ class PointcloudInputHandler : public InputHandler {
                          const param::Map& params, std::string world_frame,
                          VolumetricDataStructureBase::Ptr occupancy_map,
                          std::shared_ptr<TfTransformer> transformer,
-                         ros::NodeHandle nh, ros::NodeHandle nh_private);
+                         rclcpp::Node::SharedPtr nh);
 
   InputHandlerType getType() const override {
     return InputHandlerType::kPointcloud;
   }
 
-  void pointcloudCallback(const sensor_msgs::PointCloud2& pointcloud_msg) {
+  void pointcloudCallback(const sensor_msgs::msg::PointCloud2& pointcloud_msg) {
     pointcloud_queue_.emplace(pointcloud_msg);
   }
 
  private:
-  ros::Subscriber pointcloud_sub_;
-  std::queue<sensor_msgs::PointCloud2> pointcloud_queue_;
+  rclcpp::Subscription<sensor_msgs::msg::PointCloud2>::SharedPtr pointcloud_sub_;
+  std::queue<sensor_msgs::msg::PointCloud2> pointcloud_queue_;
   void processQueue() override;
 };
 }  // namespace wavemap

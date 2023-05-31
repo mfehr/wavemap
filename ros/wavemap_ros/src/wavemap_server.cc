@@ -1,13 +1,13 @@
 #include "wavemap_ros/wavemap_server.h"
 
-#include <std_srvs/Empty.h>
+// #include <std_srvs/Empty.h>
+#include <wavemap_msgs/srv/file_path.hpp>
+
 #include <wavemap/data_structure/volumetric/volumetric_data_structure_factory.h>
 #include <wavemap/utils/nameof.h>
-#include <wavemap_msgs/FilePath.h>
-#include <wavemap_msgs/Map.h>
-#include <wavemap_msgs/MapEvaluationSummary.h>
-#include <wavemap_msgs/PerformanceStats.h>
-#include <wavemap_ros_conversions/config_conversions.h>
+#include <wavemap_msgs/msg/map.hpp>
+#include <wavemap_msgs/msg/map_evaluation_summary.hpp>
+#include <wavemap_msgs/msg/performance_stats.h>
 #include <wavemap_ros_conversions/map_msg_conversions.h>
 
 #include "wavemap_ros/input_handler/input_handler_factory.h"
@@ -27,47 +27,48 @@ bool WavemapServerConfig::isValid(bool verbose) const {
   return all_valid;
 }
 
-WavemapServer::WavemapServer(ros::NodeHandle nh, ros::NodeHandle nh_private)
-    : WavemapServer(nh, nh_private,
-                    WavemapServerConfig::from(param::convert::toParamMap(
-                        nh_private, "map/general"))) {}
+WavemapServer::WavemapServer(rclcpp::Node::SharedPtr nh)
+    : WavemapServer(nh,
+                    WavemapServerConfig()) {}
 
-WavemapServer::WavemapServer(ros::NodeHandle nh, ros::NodeHandle nh_private,
+WavemapServer::WavemapServer(rclcpp::Node::SharedPtr nh,
                              const WavemapServerConfig& config)
     : config_(config.checkValid()),
-      transformer_(std::make_shared<TfTransformer>()) {
+      transformer_(std::make_shared<TfTransformer>(nh)) {
   // Setup data structure
-  const param::Map data_structure_params =
-      param::convert::toParamMap(nh_private, "map/data_structure");
+  const param::Map data_structure_params;
+  // TODO(mfehr): add params manually here.
+  
   occupancy_map_ = VolumetricDataStructureFactory::create(
       data_structure_params, VolumetricDataStructureType::kHashedBlocks);
   CHECK_NOTNULL(occupancy_map_);
 
   // Setup input handlers
-  const param::Array integrator_params_array =
-      param::convert::toParamArray(nh_private, "inputs");
+  const param::Array integrator_params_array;
+  // TODO(mfehr): add params manually here.
   for (const auto& integrator_params : integrator_params_array) {
     if (integrator_params.holds<param::Map>()) {
       const auto param_map = integrator_params.get<param::Map>();
-      addInput(param_map, nh, nh_private);
+      addInput(param_map, nh);
     }
   }
 
   // Connect to ROS
   subscribeToTimers(nh);
   subscribeToTopics(nh);
-  advertiseTopics(nh_private);
-  advertiseServices(nh_private);
+  advertiseTopics(nh);
+
+  // advertiseServices(nh);
 }
 
-void WavemapServer::visualizeMap() {
+void WavemapServer::visualizeMap(rclcpp::Node::SharedPtr nh) {
   if (occupancy_map_ && !occupancy_map_->empty()) {
     occupancy_map_->threshold();
 
-    const wavemap_msgs::Map map_msg =
+    const wavemap_msgs::msg::Map map_msg =
         convert::mapToRosMsg(occupancy_map_, config_.world_frame,
-                             ros::Time::now(), config_.visualization_period);
-    map_pub_.publish(map_msg);
+                             nh->now(), config_.visualization_period);
+    map_pub_->publish(map_msg);
   }
 }
 
@@ -84,69 +85,74 @@ bool WavemapServer::loadMap(const std::string& file_path) {
 }
 
 InputHandler* WavemapServer::addInput(const param::Map& integrator_params,
-                                      const ros::NodeHandle& nh,
-                                      ros::NodeHandle nh_private) {
+                                      rclcpp::Node::SharedPtr nh) {
   auto input_handler =
       InputHandlerFactory::create(integrator_params, config_.world_frame,
-                                  occupancy_map_, transformer_, nh, nh_private);
+                                  occupancy_map_, transformer_, nh);
   if (input_handler) {
     return input_handlers_.emplace_back(std::move(input_handler)).get();
   }
   return nullptr;
 }
 
-void WavemapServer::subscribeToTimers(const ros::NodeHandle& nh) {
+void WavemapServer::subscribeToTimers(rclcpp::Node::SharedPtr nh) {
   if (0.f < config_.thresholding_period) {
-    ROS_INFO_STREAM("Registering map thresholding timer with period "
-                    << config_.thresholding_period << "s");
-    map_thresholding_timer_ = nh.createTimer(
-        ros::Duration(config_.thresholding_period),
-        [this](const auto& /*event*/) { occupancy_map_->threshold(); });
+    RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"),
+                       "Registering map thresholding timer with period "
+                           << config_.thresholding_period << "s");
+    map_thresholding_timer_ =
+        nh->create_wall_timer(std::chrono::milliseconds(static_cast<int>(config_.thresholding_period * 1000)),
+                              [&]() { occupancy_map_->threshold(); });
   }
 
   if (0.f < config_.pruning_period) {
-    ROS_INFO_STREAM("Registering map pruning timer with period "
-                    << config_.pruning_period << "s");
-    map_pruning_timer_ = nh.createTimer(
-        ros::Duration(config_.pruning_period),
-        [this](const auto& /*event*/) { occupancy_map_->prune(); });
+    RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"),
+                       "Registering map pruning timer with period "
+                           << config_.pruning_period << "s");
+    map_pruning_timer_ =
+        nh->create_wall_timer(std::chrono::milliseconds(static_cast<int>(config_.pruning_period * 1000)),
+                              [&]() { occupancy_map_->prune(); });
   }
 
   if (0.f < config_.visualization_period) {
-    ROS_INFO_STREAM("Registering map visualization timer with period "
-                    << config_.visualization_period << "s");
-    map_visualization_timer_ =
-        nh.createTimer(ros::Duration(config_.visualization_period),
-                       [this](const auto& /*event*/) { visualizeMap(); });
+    RCLCPP_INFO_STREAM(rclcpp::get_logger("rclcpp"),
+                       "Registering map visualization timer with period "
+                           << config_.visualization_period << "s");
+    map_visualization_timer_ = nh->create_wall_timer(
+        std::chrono::milliseconds(static_cast<int>(config_.visualization_period * 1000)),
+        [&]() { visualizeMap(nh); });
   }
 }
 
-void WavemapServer::subscribeToTopics(ros::NodeHandle& /*nh*/) {}
+void WavemapServer::subscribeToTopics(rclcpp::Node::SharedPtr /*nh*/) {}
 
-void WavemapServer::advertiseTopics(ros::NodeHandle& nh_private) {
-  map_pub_ = nh_private.advertise<wavemap_msgs::Map>("map", 10, true);
+void WavemapServer::advertiseTopics(rclcpp::Node::SharedPtr nh) {
+  map_pub_ = nh->create_publisher<wavemap_msgs::msg::Map>(
+      "map", 10);
 }
 
-void WavemapServer::advertiseServices(ros::NodeHandle& nh_private) {
-  visualize_map_srv_ = nh_private.advertiseService<std_srvs::Empty::Request,
-                                                   std_srvs::Empty::Response>(
-      "visualize_map", [this](auto& /*request*/, auto& /*response*/) {
-        visualizeMap();
-        return true;
-      });
+// void WavemapServer::advertiseServices(rclcpp::Node::SharedPtr nh) {
+//   visualize_map_srv_ = nh->advertiseService<std_srvs::Empty::Request,
+//                                                    std_srvs::Empty::Response>(
+//       "visualize_map", [this](auto& /*request*/, auto& /*response*/) {
+//         visualizeMap(nh);
+//         return true;
+//       });
 
-  save_map_srv_ = nh_private.advertiseService<wavemap_msgs::FilePath::Request,
-                                              wavemap_msgs::FilePath::Response>(
-      "save_map", [this](auto& request, auto& response) {
-        response.success = saveMap(request.file_path);
-        return true;
-      });
+//   save_map_srv_ =
+//       nh->advertiseService<wavemap_msgs::msg::FilePath::Request,
+//                                   wavemap_msgs::msg::FilePath::Response>(
+//           "save_map", [this](auto& request, auto& response) {
+//             response.success = saveMap(request.file_path);
+//             return true;
+//           });
 
-  load_map_srv_ = nh_private.advertiseService<wavemap_msgs::FilePath::Request,
-                                              wavemap_msgs::FilePath::Response>(
-      "load_map", [this](auto& request, auto& response) {
-        response.success = loadMap(request.file_path);
-        return true;
-      });
-}
+//   load_map_srv_ =
+//       nh->advertiseService<wavemap_msgs::msg::FilePath::Request,
+//                                   wavemap_msgs::msg::FilePath::Response>(
+//           "load_map", [this](auto& request, auto& response) {
+//             response.success = loadMap(request.file_path);
+//             return true;
+//           });
+// }
 }  // namespace wavemap

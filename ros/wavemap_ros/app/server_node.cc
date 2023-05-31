@@ -3,7 +3,7 @@
 #include "wavemap_ros/wavemap_server.h"
 
 int main(int argc, char** argv) {
-  ros::init(argc, argv, "wavemap_server");
+  rclcpp::init(argc, argv);
 
   google::InitGoogleLogging(argv[0]);
   google::ParseCommandLineFlags(&argc, &argv, false);
@@ -11,10 +11,10 @@ int main(int argc, char** argv) {
   FLAGS_alsologtostderr = true;
   FLAGS_colorlogtostderr = true;
 
-  ros::NodeHandle nh;
-  ros::NodeHandle nh_private("~");
-  wavemap::WavemapServer wavemap_server(nh, nh_private);
+  rclcpp::Node::SharedPtr nh = rclcpp::Node::make_shared("wavemap_server", "wavemap_server");
+  CHECK(nh);
+  wavemap::WavemapServer wavemap_server(nh);
 
-  ros::spin();
+  rclcpp::spin(nh);
   return 0;
 }

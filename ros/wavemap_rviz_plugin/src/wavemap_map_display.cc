@@ -161,7 +161,7 @@ void WavemapMapDisplay::processMessage(
     const wavemap_msgs::Map::ConstPtr& map_msg) {
   // Deserialize the octree
   if (!map_msg) {
-    ROS_WARN("Ignoring request to process non-existent octree msg (nullptr).");
+    RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Ignoring request to process non-existent octree msg (nullptr).");
     return;
   }
   updateMapFromRosMsg(*map_msg);
@@ -174,7 +174,7 @@ void WavemapMapDisplay::processMessage(
   if (!context_->getFrameManager()->getTransform(map_msg->header.frame_id,
                                                  map_msg->header.stamp,
                                                  position, orientation)) {
-    ROS_WARN("Error transforming from frame '%s' to frame '%s'",
+    RCLCPP_WARN(rclcpp::get_logger("rclcpp"), "Error transforming from frame '%s' to frame '%s'",
              map_msg->header.frame_id.c_str(), qPrintable(fixed_frame_));
     return;
   }
